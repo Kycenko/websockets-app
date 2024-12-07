@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  firstName     String          @map("first_name")
+  lastName      String          @map("last_name")
+  passwordHash  String          @map("password_hash")
+  login         String          @unique
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  members       ChatMember[]
+  messages      Message[]
+  connectedUser ConnectedUser[]
+
+  @@map("users")
+}
+
+model ConnectedUser {
+  id          String   @id @default(cuid())
+  socketId    String   @unique
+  connectedAt DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+
+  @@map("connected_users")
+}
+
+model Chat {
+  id        String       @id @default(cuid())
+  name      String
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  members   ChatMember[]
+  messages  Message[]
+
+  @@map("chats")
+}
+
+model ChatMember {
+  id       String   @id @default(cuid())
+  userId   String
+  chatId   String
+  joinedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat     Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chatId])
+  @@index([userId, chatId])
+  @@map("chat_members")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+  creatorId String
+  creator   User     @relation(fields: [creatorId], references: [id])
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+
+  @@index([creatorId, chatId])
+  @@map("messages")
+}
